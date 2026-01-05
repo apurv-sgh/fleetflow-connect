@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,9 @@ import StatsCard from "@/components/dashboard/StatsCard";
 import BookingCard from "@/components/dashboard/BookingCard";
 import GovHeader from "@/components/layout/GovHeader";
 import GovFooter from "@/components/layout/GovFooter";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
+import { useBookings } from "@/hooks/useBookings";
 import {
   Car,
   Calendar,
@@ -22,65 +25,90 @@ import {
   ChevronRight,
   X,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data
-const mockBookings = [
-  {
-    id: "1",
-    requesterId: "u1",
-    requesterName: "Self",
-    requesterDesignation: "Senior Technical Director",
-    pickupLocation: "NIC HQ, CGO Complex",
-    dropLocation: "Ministry of Finance, North Block",
-    requestedTime: "Today, 10:30 AM",
-    status: "assigned",
-    vehicleNumber: "DL-01-AB-1234",
-    driverName: "Rajesh Kumar",
-    driverRating: 4.8,
-    estimatedTime: "15 mins",
-  },
-  {
-    id: "2",
-    requesterId: "u1",
-    requesterName: "Self",
-    requesterDesignation: "Senior Technical Director",
-    pickupLocation: "NIC HQ, CGO Complex",
-    dropLocation: "India Habitat Centre",
-    requestedTime: "Tomorrow, 09:00 AM",
-    status: "pending",
-  },
-  {
-    id: "3",
-    requesterId: "u1",
-    requesterName: "Self",
-    requesterDesignation: "Senior Technical Director",
-    pickupLocation: "Vigyan Bhawan",
-    dropLocation: "NIC HQ, CGO Complex",
-    requestedTime: "Yesterday, 04:00 PM",
-    status: "completed",
-    vehicleNumber: "DL-01-CD-5678",
-    driverName: "Amit Singh",
-    driverRating: 4.5,
-  },
-];
-
-const UserDashboard = () => {
+const UserDashboardContent = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { profile, userRole, signOut } = useAuth();
+  const { bookings, activeBooking, loading, createBooking, cancelBooking } = useBookings();
+  
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [formData, setFormData] = useState({
+    pickupAddress: "",
+    dropAddress: "",
+    date: "",
+    time: "",
+    passengerCount: 1,
+    specialRequirements: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const user = {
-    name: "Dr. Anita Sharma",
-    designation: "Senior Technical Director",
-    department: "e-Governance Division",
-    email: "anita.sharma@nic.in",
-    isHOG: true,
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("gfams_user");
+  const handleLogout = async () => {
+    await signOut();
     navigate("/kiosk");
   };
+
+  const handleSubmitBooking = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.pickupAddress || !formData.dropAddress || !formData.date || !formData.time) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const scheduledDatetime = new Date(`${formData.date}T${formData.time}`);
+      
+      await createBooking({
+        pickupAddress: formData.pickupAddress,
+        dropAddress: formData.dropAddress,
+        scheduledDatetime: scheduledDatetime.toISOString(),
+        passengerCount: formData.passengerCount,
+        specialRequirements: formData.specialRequirements,
+        requesterType: userRole || "official",
+      });
+
+      toast({
+        title: "Booking Submitted",
+        description: "Your vehicle request has been submitted successfully.",
+      });
+
+      setShowBookingForm(false);
+      setFormData({
+        pickupAddress: "",
+        dropAddress: "",
+        date: "",
+        time: "",
+        passengerCount: 1,
+        specialRequirements: "",
+      });
+    } catch (error) {
+      toast({
+        title: "Booking Failed",
+        description: error.message || "Failed to submit booking request.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const filteredBookings = bookings.filter(
+    (b) =>
+      b.pickup_address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.drop_address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.booking_number?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const completedBookings = bookings.filter((b) => b.status === "completed");
+  const pendingBookings = bookings.filter((b) => ["pending", "approved", "assigned"].includes(b.status));
 
   return (
     <div className="page-container bg-muted/30">
@@ -98,14 +126,14 @@ const UserDashboard = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-lg font-semibold text-foreground">
-                      Welcome, {user.name}
+                      Welcome, {profile?.full_name || "User"}
                     </h1>
-                    {user.isHOG && (
+                    {userRole === "hog" && (
                       <Badge variant="reserved">HOG</Badge>
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {user.designation} • {user.department}
+                    {profile?.designation || "Government Official"} • {profile?.department || "NIC"}
                   </p>
                 </div>
               </div>
@@ -128,23 +156,23 @@ const UserDashboard = () => {
           <div className="dashboard-grid mb-8">
             <StatsCard
               title="Active Bookings"
-              value="2"
+              value={pendingBookings.length.toString()}
               icon={Car}
-              description="1 in progress, 1 pending"
+              description={`${bookings.filter(b => b.status === "in_progress").length} in progress`}
               iconClassName="bg-info/10"
             />
             <StatsCard
               title="Total Trips"
-              value="47"
+              value={completedBookings.length.toString()}
               icon={History}
-              description="This month: 12"
+              description="Completed trips"
               trend={{ value: 15, isPositive: true }}
             />
             <StatsCard
               title="Average Rating Given"
               value="4.6"
               icon={Star}
-              description="Based on 45 ratings"
+              description="Based on your ratings"
               iconClassName="bg-secondary/10"
             />
             <StatsCard
@@ -177,16 +205,44 @@ const UserDashboard = () => {
           </div>
 
           {/* Bookings Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {mockBookings.map((booking) => (
-              <BookingCard
-                key={booking.id}
-                booking={booking}
-                showActions={false}
-                onViewDetails={() => {}}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filteredBookings.length === 0 ? (
+            <div className="text-center py-12 bg-muted/30 rounded-lg">
+              <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-semibold text-foreground mb-2">No Bookings Yet</h3>
+              <p className="text-muted-foreground mb-4">Start by creating your first vehicle booking.</p>
+              <Button variant="gov" onClick={() => setShowBookingForm(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Booking
+              </Button>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              {filteredBookings.map((booking) => (
+                <BookingCard
+                  key={booking.id}
+                  booking={{
+                    id: booking.id,
+                    requesterName: "Self",
+                    requesterDesignation: profile?.designation || "",
+                    pickupLocation: booking.pickup_address,
+                    dropLocation: booking.drop_address,
+                    requestedTime: new Date(booking.scheduled_datetime).toLocaleString(),
+                    status: booking.status,
+                    vehicleNumber: booking.vehicle?.registration_number,
+                    driverName: booking.driver?.profile?.full_name,
+                    driverRating: booking.driver?.average_rating,
+                  }}
+                  showActions={booking.status === "pending"}
+                  onViewDetails={() => {}}
+                  onCancel={() => cancelBooking(booking.id, "User cancelled")}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Quick Booking Form Modal */}
           {showBookingForm && (
@@ -206,7 +262,7 @@ const UserDashboard = () => {
                     </Button>
                   </div>
 
-                  <form className="space-y-4">
+                  <form onSubmit={handleSubmitBooking} className="space-y-4">
                     <div>
                       <label className="form-label">
                         <div className="flex items-center gap-2">
@@ -216,6 +272,9 @@ const UserDashboard = () => {
                       </label>
                       <Input
                         placeholder="e.g., NIC HQ, CGO Complex"
+                        value={formData.pickupAddress}
+                        onChange={(e) => setFormData({ ...formData, pickupAddress: e.target.value })}
+                        required
                         className="form-input"
                       />
                     </div>
@@ -229,6 +288,9 @@ const UserDashboard = () => {
                       </label>
                       <Input
                         placeholder="e.g., Ministry of Finance"
+                        value={formData.dropAddress}
+                        onChange={(e) => setFormData({ ...formData, dropAddress: e.target.value })}
+                        required
                         className="form-input"
                       />
                     </div>
@@ -241,7 +303,13 @@ const UserDashboard = () => {
                             Date
                           </div>
                         </label>
-                        <Input type="date" className="form-input" />
+                        <Input
+                          type="date"
+                          value={formData.date}
+                          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                          required
+                          className="form-input"
+                        />
                       </div>
                       <div>
                         <label className="form-label">
@@ -250,7 +318,13 @@ const UserDashboard = () => {
                             Time
                           </div>
                         </label>
-                        <Input type="time" className="form-input" />
+                        <Input
+                          type="time"
+                          value={formData.time}
+                          onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                          required
+                          className="form-input"
+                        />
                       </div>
                     </div>
 
@@ -260,7 +334,8 @@ const UserDashboard = () => {
                         type="number"
                         min="1"
                         max="10"
-                        defaultValue="1"
+                        value={formData.passengerCount}
+                        onChange={(e) => setFormData({ ...formData, passengerCount: parseInt(e.target.value) })}
                         className="form-input"
                       />
                     </div>
@@ -269,6 +344,8 @@ const UserDashboard = () => {
                       <label className="form-label">Special Requirements</label>
                       <Input
                         placeholder="e.g., Wheelchair accessible, Extra luggage space"
+                        value={formData.specialRequirements}
+                        onChange={(e) => setFormData({ ...formData, specialRequirements: e.target.value })}
                         className="form-input"
                       />
                     </div>
@@ -282,8 +359,8 @@ const UserDashboard = () => {
                       >
                         Cancel
                       </Button>
-                      <Button type="submit" variant="gov" className="flex-1">
-                        Submit Request
+                      <Button type="submit" variant="gov" className="flex-1" disabled={isSubmitting}>
+                        {isSubmitting ? "Submitting..." : "Submit Request"}
                       </Button>
                     </div>
                   </form>
@@ -301,41 +378,25 @@ const UserDashboard = () => {
               </Button>
             </div>
             <div className="space-y-3">
-              {[
-                {
-                  action: "Booking completed",
-                  details: "Trip to India Habitat Centre",
-                  time: "2 hours ago",
-                  icon: "✓",
-                },
-                {
-                  action: "Driver assigned",
-                  details: "Rajesh Kumar for tomorrow's trip",
-                  time: "5 hours ago",
-                  icon: "🚗",
-                },
-                {
-                  action: "Booking request submitted",
-                  details: "Ministry of Finance visit",
-                  time: "1 day ago",
-                  icon: "📝",
-                },
-              ].map((activity, index) => (
+              {bookings.slice(0, 3).map((booking, index) => (
                 <div
-                  key={index}
+                  key={booking.id || index}
                   className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg"
                 >
-                  <span className="text-lg">{activity.icon}</span>
+                  <span className="text-lg">
+                    {booking.status === "completed" ? "✓" : booking.status === "assigned" ? "🚗" : "📝"}
+                  </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">
-                      {activity.action}
+                      {booking.status === "completed" ? "Booking completed" : 
+                       booking.status === "assigned" ? "Driver assigned" : "Booking request"}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {activity.details}
+                      {booking.pickup_address} → {booking.drop_address}
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {activity.time}
+                    {new Date(booking.created_at).toLocaleDateString()}
                   </span>
                 </div>
               ))}
@@ -348,5 +409,11 @@ const UserDashboard = () => {
     </div>
   );
 };
+
+const UserDashboard = () => (
+  <ProtectedRoute allowedRoles={["official", "hog"]}>
+    <UserDashboardContent />
+  </ProtectedRoute>
+);
 
 export default UserDashboard;
