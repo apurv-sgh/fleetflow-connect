@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +15,9 @@ import {
   EyeOff,
   ArrowLeft,
   IdCard,
-  Building2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const roleConfig = {
   user: {
@@ -30,6 +30,7 @@ const roleConfig = {
     redirectPath: "/user/dashboard",
     idLabel: "Government Email ID",
     idPlaceholder: "yourname@nic.in",
+    roleValue: "official",
   },
   admin: {
     icon: Shield,
@@ -41,6 +42,7 @@ const roleConfig = {
     redirectPath: "/admin/dashboard",
     idLabel: "Admin Email ID",
     idPlaceholder: "admin@transport.nic.in",
+    roleValue: "admin",
   },
   driver: {
     icon: Car,
@@ -50,8 +52,9 @@ const roleConfig = {
     bgColor: "bg-success/10",
     description: "Manage your availability, view assignments, and track your performance.",
     redirectPath: "/driver/dashboard",
-    idLabel: "Driver License Number",
-    idPlaceholder: "DL-0420110012345",
+    idLabel: "Email ID",
+    idPlaceholder: "driver@nic.in",
+    roleValue: "driver",
   },
 };
 
@@ -59,6 +62,7 @@ const Auth = () => {
   const { role } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signIn, signUp, isAuthenticated, userRole } = useAuth();
 
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -78,42 +82,142 @@ const Auth = () => {
   const config = roleConfig[role] || roleConfig.user;
   const Icon = config.icon;
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && userRole) {
+      const roleMapping = {
+        official: "/user/dashboard",
+        hog: "/user/dashboard",
+        driver: "/driver/dashboard",
+        admin: "/admin/dashboard",
+        super_admin: "/admin/dashboard",
+        compliance_officer: "/admin/dashboard",
+      };
+      navigate(roleMapping[userRole] || "/");
+    }
+  }, [isAuthenticated, userRole, navigate]);
+
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    if (!isLogin && formData.password !== formData.confirmPassword) {
+  const validateForm = () => {
+    if (!formData.email || !formData.password) {
       toast({
-        title: "Password Mismatch",
-        description: "Passwords do not match. Please try again.",
+        title: "Validation Error",
+        description: "Email and password are required.",
         variant: "destructive",
       });
-      setIsLoading(false);
-      return;
+      return false;
     }
 
-    // Mock successful authentication
-    toast({
-      title: isLogin ? "Login Successful" : "Registration Successful",
-      description: `Welcome to GFAMS ${config.title.replace(" Login", "")}`,
-    });
+    if (!isLogin) {
+      if (formData.password !== formData.confirmPassword) {
+        toast({
+          title: "Password Mismatch",
+          description: "Passwords do not match. Please try again.",
+          variant: "destructive",
+        });
+        return false;
+      }
 
-    // Store mock user data
-    localStorage.setItem("gfams_user", JSON.stringify({
-      role: role,
-      email: formData.email,
-      name: formData.name || "Demo User",
-    }));
+      if (formData.password.length < 8) {
+        toast({
+          title: "Weak Password",
+          description: "Password must be at least 8 characters long.",
+          variant: "destructive",
+        });
+        return false;
+      }
 
-    navigate(config.redirectPath);
-    setIsLoading(false);
+      if (!formData.name) {
+        toast({
+          title: "Validation Error",
+          description: "Full name is required for registration.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+
+    try {
+      if (isLogin) {
+        // Login
+        const { error } = await signIn(formData.email, formData.password);
+        
+        if (error) {
+          let errorMessage = error.message;
+          if (error.message.includes("Invalid login credentials")) {
+            errorMessage = "Invalid email or password. Please try again.";
+          }
+          toast({
+            title: "Login Failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        toast({
+          title: "Login Successful",
+          description: `Welcome to GFAMS ${config.title.replace(" Login", "")}`,
+        });
+
+        navigate(config.redirectPath);
+      } else {
+        // Register
+        const metadata = {
+          full_name: formData.name,
+          phone: formData.phone,
+          designation: formData.designation,
+          department: formData.department,
+          role: config.roleValue,
+          license_number: formData.licenseNumber,
+        };
+
+        const { error } = await signUp(formData.email, formData.password, metadata);
+        
+        if (error) {
+          let errorMessage = error.message;
+          if (error.message.includes("already registered")) {
+            errorMessage = "This email is already registered. Please login instead.";
+          }
+          toast({
+            title: "Registration Failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        toast({
+          title: "Registration Successful",
+          description: "Your account has been created. You can now login.",
+        });
+
+        // Switch to login mode
+        setIsLogin(true);
+      }
+    } catch (error) {
+      console.error("Auth error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -206,7 +310,6 @@ const Auth = () => {
                           placeholder="e.g., Senior Technical Director"
                           value={formData.designation}
                           onChange={handleInputChange}
-                          required
                           className="form-input"
                         />
                       </div>
@@ -221,7 +324,6 @@ const Auth = () => {
                           placeholder="e.g., e-Governance Division"
                           value={formData.department}
                           onChange={handleInputChange}
-                          required
                           className="form-input"
                         />
                       </div>
@@ -260,7 +362,6 @@ const Auth = () => {
                       placeholder="+91 98765 43210"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      required
                       className="form-input"
                     />
                   </div>
@@ -277,7 +378,7 @@ const Auth = () => {
                 <Input
                   id="email"
                   name="email"
-                  type={role === "driver" ? "text" : "email"}
+                  type="email"
                   placeholder={config.idPlaceholder}
                   value={formData.email}
                   onChange={handleInputChange}
