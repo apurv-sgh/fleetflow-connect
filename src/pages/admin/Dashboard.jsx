@@ -9,9 +9,6 @@ import DriverCard from "@/components/dashboard/DriverCard";
 import VehicleCard from "@/components/dashboard/VehicleCard";
 import GovHeader from "@/components/layout/GovHeader";
 import GovFooter from "@/components/layout/GovFooter";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import { useAuth } from "@/contexts/AuthContext";
-import { useAdminData } from "@/hooks/useAdminData";
 import {
   Car,
   Users,
@@ -163,44 +160,22 @@ const mockVehicles = [
   },
 ];
 
-const AdminDashboardContent = () => {
+const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signOut } = useAuth();
-  const { 
-    stats, 
-    vehicles, 
-    drivers, 
-    pendingBookings, 
-    alerts, 
-    loading, 
-    approveBooking, 
-    rejectBooking,
-    refetch 
-  } = useAdminData();
-  
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleLogout = async () => {
-    await signOut();
+  const handleLogout = () => {
+    localStorage.removeItem("gfams_user");
     navigate("/kiosk");
   };
 
-  const handleApproveBooking = async (bookingId) => {
-    try {
-      await approveBooking(bookingId);
-      toast({
-        title: "Booking Approved",
-        description: "Driver allocation in progress...",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to approve booking",
-        variant: "destructive",
-      });
-    }
+  const handleApproveBooking = (bookingId) => {
+    toast({
+      title: "Booking Approved",
+      description: "Driver allocation in progress...",
+    });
   };
 
   const tabs = [
@@ -566,4 +541,4 @@ const AdminDashboardContent = () => {
   );
 };
 
-export default AdminDashboardContent;
+export default AdminDashboard;
