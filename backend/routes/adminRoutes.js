@@ -9,9 +9,7 @@ import Driver from '../models/Driver.js';
 
 const router = express.Router();
 
-/**
- * Get audit logs
- */
+//Get audit logs
 router.get(
   '/audit-logs',
   authenticate,
@@ -45,9 +43,7 @@ router.get(
   }
 );
 
-/**
- * Export audit logs
- */
+// Export audit logs
 router.get(
   '/audit-logs/export',
   authenticate,
@@ -82,9 +78,7 @@ router.get(
   }
 );
 
-/**
- * Get incident logs
- */
+// Get incident logs
 router.get(
   '/incidents',
   authenticate,
@@ -133,9 +127,7 @@ router.get(
   }
 );
 
-/**
- * Get GPS location history
- */
+// Get GPS location history
 router.get(
   '/gps-history/:vehicleId',
   authenticate,
@@ -171,9 +163,7 @@ router.get(
   }
 );
 
-/**
- * Get admin dashboard analytics
- */
+// Get admin dashboard analytics
 router.get(
   '/dashboard/analytics',
   authenticate,
@@ -223,9 +213,7 @@ router.get(
   }
 );
 
-/**
- * Get booking analytics
- */
+// Get booking analytics
 router.get(
   '/analytics/bookings',
   authenticate,

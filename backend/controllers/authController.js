@@ -4,12 +4,10 @@ import { generateTokens, hashPassword, comparePassword } from '../utils/authUtil
 import { logAudit } from '../utils/auditUtils.js';
 import { v4 as uuidv4 } from 'uuid';
 
-/**
- * Register new user
- */
+// Register new user
 export const register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName, phone, role, designation, department } =
+    const { email, password, firstName, phone, role, designation, department } =
       req.validatedData;
 
     // Check if user exists
@@ -29,7 +27,6 @@ export const register = async (req, res) => {
       email,
       password: hashedPassword,
       firstName,
-      lastName,
       phone,
       role,
       designation,
@@ -62,7 +59,6 @@ export const register = async (req, res) => {
         userId: user._id,
         email: user.email,
         firstName: user.firstName,
-        lastName: user.lastName,
         role: user.role,
         accessToken,
         refreshToken,
@@ -78,9 +74,7 @@ export const register = async (req, res) => {
   }
 };
 
-/**
- * Login user
- */
+// Login user
 export const login = async (req, res) => {
   try {
     const { email, password } = req.validatedData;
@@ -137,7 +131,6 @@ export const login = async (req, res) => {
         userId: user._id,
         email: user.email,
         firstName: user.firstName,
-        lastName: user.lastName,
         role: user.role,
         designation: user.designation,
         department: user.department,
@@ -155,9 +148,7 @@ export const login = async (req, res) => {
   }
 };
 
-/**
- * Refresh access token
- */
+// Refresh access token
 export const refreshToken = async (req, res) => {
   try {
     const { refreshToken: token } = req.body;
@@ -191,9 +182,7 @@ export const refreshToken = async (req, res) => {
   }
 };
 
-/**
- * Get current user profile
- */
+// Get current user profile
 export const getCurrentUser = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
@@ -227,12 +216,10 @@ export const getCurrentUser = async (req, res) => {
   }
 };
 
-/**
- * Update user profile
- */
+// Update user profile
 export const updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, phone, designation, department, profileImage } =
+    const { firstName, phone, designation, department, profileImage } =
       req.validatedData;
 
     const user = await User.findById(req.user.userId);
@@ -246,7 +233,6 @@ export const updateProfile = async (req, res) => {
 
     const oldValues = {
       firstName: user.firstName,
-      lastName: user.lastName,
       phone: user.phone,
       designation: user.designation,
       department: user.department,
@@ -254,7 +240,6 @@ export const updateProfile = async (req, res) => {
 
     // Update fields
     if (firstName) user.firstName = firstName;
-    if (lastName) user.lastName = lastName;
     if (phone) user.phone = phone;
     if (designation) user.designation = designation;
     if (department) user.department = department;
@@ -272,7 +257,6 @@ export const updateProfile = async (req, res) => {
       oldValue: oldValues,
       newValue: {
         firstName: user.firstName,
-        lastName: user.lastName,
         phone: user.phone,
         designation: user.designation,
         department: user.department,
@@ -296,9 +280,7 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-/**
- * Logout user
- */
+// Logout user
 export const logout = async (req, res) => {
   try {
     // Log audit

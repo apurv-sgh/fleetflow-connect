@@ -6,9 +6,7 @@ import { allocateDriver, handleDriverResponse } from '../services/allocationServ
 import { logAudit } from '../utils/auditUtils.js';
 import { v4 as uuidv4 } from 'uuid';
 
-/**
- * Create booking request
- */
+// Create booking request
 export const createBooking = async (req, res) => {
   try {
     const {
@@ -97,9 +95,7 @@ export const createBooking = async (req, res) => {
   }
 };
 
-/**
- * Get booking details
- */
+// Get booking details
 export const getBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
@@ -141,9 +137,7 @@ export const getBooking = async (req, res) => {
   }
 };
 
-/**
- * Get user bookings
- */
+// Get user bookings
 export const getUserBookings = async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
@@ -186,9 +180,7 @@ export const getUserBookings = async (req, res) => {
   }
 };
 
-/**
- * Cancel booking
- */
+// Cancel booking
 export const cancelBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
@@ -262,9 +254,7 @@ export const cancelBooking = async (req, res) => {
   }
 };
 
-/**
- * Rate driver after booking completion
- */
+// Rate driver after booking completion
 export const rateDriver = async (req, res) => {
   try {
     const { bookingId } = req.params;
@@ -340,9 +330,7 @@ export const rateDriver = async (req, res) => {
   }
 };
 
-/**
- * Get pending bookings (for admin)
- */
+// Get pending bookings (for admin)
 export const getPendingBookings = async (req, res) => {
   try {
     if (req.user.role !== 'ADMIN' && req.user.role !== 'COMPLIANCE_OFFICER') {

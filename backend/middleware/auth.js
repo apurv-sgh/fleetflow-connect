@@ -1,9 +1,7 @@
 import { verifyAccessToken } from '../utils/authUtils.js';
 import { logAudit } from '../utils/auditUtils.js';
 
-/**
- * Authentication middleware
- */
+// Authentication middleware
 export const authenticate = (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -29,9 +27,7 @@ export const authenticate = (req, res, next) => {
   }
 };
 
-/**
- * Role-based access control middleware
- */
+// Role-based access control middleware
 export const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -66,9 +62,7 @@ export const authorize = (...allowedRoles) => {
   };
 };
 
-/**
- * Request logging middleware
- */
+// Request logging middleware
 export const requestLogger = (req, res, next) => {
   const start = Date.now();
 
@@ -80,9 +74,7 @@ export const requestLogger = (req, res, next) => {
   next();
 };
 
-/**
- * Error handling middleware
- */
+// Error handling middleware
 export const errorHandler = (err, req, res, next) => {
   console.error('Error:', err);
 
@@ -111,9 +103,7 @@ export const errorHandler = (err, req, res, next) => {
   });
 };
 
-/**
- * Validation middleware
- */
+// Validation middleware
 export const validateRequest = (schema) => {
   return (req, res, next) => {
     const { error, value } = schema.validate(req.body, {
@@ -139,9 +129,7 @@ export const validateRequest = (schema) => {
   };
 };
 
-/**
- * Rate limiting middleware
- */
+// Rate limiting middleware
 export const rateLimiter = (maxRequests = 100, windowMs = 900000) => {
   const requests = new Map();
 

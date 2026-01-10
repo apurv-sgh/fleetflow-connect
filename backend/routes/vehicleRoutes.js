@@ -28,9 +28,7 @@ const updateVehicleStatusSchema = Joi.object({
   reason: Joi.string(),
 });
 
-/**
- * Create vehicle
- */
+// Create vehicle
 router.post(
   '/',
   authenticate,
@@ -93,9 +91,7 @@ router.post(
   }
 );
 
-/**
- * Get all vehicles
- */
+// Get all vehicles
 router.get('/', authenticate, authorize('ADMIN', 'COMPLIANCE_OFFICER'), async (req, res) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
@@ -135,9 +131,7 @@ router.get('/', authenticate, authorize('ADMIN', 'COMPLIANCE_OFFICER'), async (r
   }
 });
 
-/**
- * Get vehicle details
- */
+// Get vehicle details
 router.get('/:vehicleId', authenticate, async (req, res) => {
   try {
     const vehicle = await Vehicle.findById(req.params.vehicleId)
@@ -165,9 +159,7 @@ router.get('/:vehicleId', authenticate, async (req, res) => {
   }
 });
 
-/**
- * Update vehicle status
- */
+// Update vehicle status
 router.put(
   '/:vehicleId/status',
   authenticate,
@@ -229,9 +221,7 @@ router.put(
   }
 );
 
-/**
- * Get vehicle statistics
- */
+// Get vehicle statistics
 router.get('/admin/stats', authenticate, authorize('ADMIN', 'COMPLIANCE_OFFICER'), async (req, res) => {
   try {
     const stats = {

@@ -5,9 +5,7 @@ import { logAudit } from '../utils/auditUtils.js';
 import { categorizeTier } from '../services/allocationService.js';
 import { getDriverPerformanceDashboard, getTopPerformers } from '../services/performanceService.js';
 
-/**
- * Register driver
- */
+// Register driver
 export const registerDriver = async (req, res) => {
   try {
     const {
@@ -80,9 +78,7 @@ export const registerDriver = async (req, res) => {
   }
 };
 
-/**
- * Get driver profile
- */
+//Get driver profile
 export const getDriverProfile = async (req, res) => {
   try {
     const driver = await Driver.findOne({ userId: req.user.userId })
@@ -109,9 +105,7 @@ export const getDriverProfile = async (req, res) => {
   }
 };
 
-/**
- * Toggle driver availability
- */
+// Toggle driver availability
 export const toggleAvailability = async (req, res) => {
   try {
     const { reason } = req.validatedData;
@@ -189,9 +183,7 @@ export const toggleAvailability = async (req, res) => {
   }
 };
 
-/**
- * Update GPS location
- */
+// Update GPS location
 export const updateGPSLocation = async (req, res) => {
   try {
     const { latitude, longitude, accuracy, speed, heading } = req.validatedData;
@@ -235,9 +227,7 @@ export const updateGPSLocation = async (req, res) => {
   }
 };
 
-/**
- * Get driver performance dashboard
- */
+// Get driver performance dashboard
 export const getPerformanceDashboard = async (req, res) => {
   try {
     const driver = await Driver.findOne({ userId: req.user.userId });
@@ -264,9 +254,7 @@ export const getPerformanceDashboard = async (req, res) => {
   }
 };
 
-/**
- * Get driver ride history
- */
+// Get driver ride history
 export const getRideHistory = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
@@ -311,9 +299,7 @@ export const getRideHistory = async (req, res) => {
   }
 };
 
-/**
- * Get all drivers (admin only)
- */
+// Get all drivers (admin only)
 export const getAllDrivers = async (req, res) => {
   try {
     if (req.user.role !== 'ADMIN' && req.user.role !== 'COMPLIANCE_OFFICER') {
@@ -361,9 +347,7 @@ export const getAllDrivers = async (req, res) => {
   }
 };
 
-/**
- * Get top performing drivers
- */
+// Get top performing drivers
 export const getTopPerformersEndpoint = async (req, res) => {
   try {
     const { limit = 10 } = req.query;

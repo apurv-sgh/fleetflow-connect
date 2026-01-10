@@ -10,7 +10,6 @@ const registerSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(8).required(),
   firstName: Joi.string().required(),
-  lastName: Joi.string().required(),
   phone: Joi.string().required(),
   role: Joi.string()
     .valid('OFFICIAL', 'HOG', 'DRIVER', 'ADMIN', 'COMPLIANCE_OFFICER', 'SUPER_ADMIN')
@@ -26,7 +25,6 @@ const loginSchema = Joi.object({
 
 const updateProfileSchema = Joi.object({
   firstName: Joi.string(),
-  lastName: Joi.string(),
   phone: Joi.string(),
   designation: Joi.string(),
   department: Joi.string(),

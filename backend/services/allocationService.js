@@ -43,7 +43,7 @@ export const findTier1Driver = async (pickupLat, pickupLon, excludeDriverIds = [
           score: calculateAllocationScore(driver, distance),
         };
       })
-      .filter((d) => isFeasibleETA(d.distance / 1000)) // Rough ETA check
+      .filter((d) => isFeasibleETA(d.distance / 1000))
       .sort((a, b) => b.score - a.score);
 
     return scoredDrivers.length > 0 ? scoredDrivers[0].driver : null;
@@ -101,8 +101,7 @@ export const findTier2Driver = async (pickupLat, pickupLon, excludeDriverIds = [
  */
 export const checkExternalServices = async (pickupLat, pickupLon, dropLat, dropLon) => {
   try {
-    // This would integrate with actual Uber/Rapido APIs
-    // For now, returning mock data structure
+    // Here, this can be integrate with actual Uber/Rapido APIs. (For now: returning mock data structure)
     return {
       uber: {
         available: true,
@@ -198,9 +197,7 @@ export const allocateDriver = async (booking, official) => {
   }
 };
 
-/**
- * Handle driver acceptance/rejection
- */
+// Handle driver acceptance/rejection
 export const handleDriverResponse = async (bookingId, driverId, accepted) => {
   try {
     const booking = await Booking.findById(bookingId);
@@ -249,9 +246,7 @@ export const handleDriverResponse = async (bookingId, driverId, accepted) => {
   }
 };
 
-/**
- * Categorize driver into tier based on metrics
- */
+// Categorize driver into tier based on metrics
 export const categorizeTier = async (driver) => {
   try {
     const { averageRating, completionRate } = driver.performanceMetrics;

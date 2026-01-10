@@ -18,6 +18,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { authService } from "@/services/authService";
 
 const roleConfig = {
   user: {
@@ -86,34 +87,48 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      if (!isLogin && formData.password !== formData.confirmPassword) {
+        toast({
+          title: "Password Mismatch",
+          description: "Passwords do not match. Please try again.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
 
-    if (!isLogin && formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Password Mismatch",
-        description: "Passwords do not match. Please try again.",
-        variant: "destructive",
-      });
+      if (isLogin) {
+        const res = await authService.login(formData.email, formData.password);
+        toast({ title: "Login Successful", description: `Welcome ${res?.data?.firstName || "User"}` });
+        navigate(config.redirectPath);
+      } else {
+        const mappedRole = role === "admin" ? "ADMIN" : role === "driver" ? "DRIVER" : "OFFICIAL";
+        const nameParts = (formData.name || "").trim().split(" ");
+        const firstName = nameParts[0] || formData.name || "";
+        const lastName = nameParts.slice(1).join(" ") || "";
+
+        const payload = {
+          email: formData.email,
+          password: formData.password,
+          firstName,
+          lastName,
+          phone: formData.phone,
+          role: mappedRole,
+          designation: formData.designation || undefined,
+          department: formData.department || undefined,
+        };
+
+        const res = await authService.register(payload);
+        toast({ title: "Registration Successful", description: `Welcome ${res?.data?.firstName || firstName}` });
+        navigate(config.redirectPath);
+      }
+    } catch (err) {
+      const message = err?.response?.data?.message || err.message || "Authentication failed";
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // Mock successful authentication
-    toast({
-      title: isLogin ? "Login Successful" : "Registration Successful",
-      description: `Welcome to GFAMS ${config.title.replace(" Login", "")}`,
-    });
-
-    // Store mock user data
-    localStorage.setItem("gfams_user", JSON.stringify({
-      role: role,
-      email: formData.email,
-      name: formData.name || "Demo User",
-    }));
-
-    navigate(config.redirectPath);
-    setIsLoading(false);
   };
 
   return (
